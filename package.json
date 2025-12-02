@@ -2,7 +2,7 @@
 	"name": "obsidian-plugin-sorty",
 	"version": "1.0.0",
 	"description": "An Obsidian plugin that implements various types of text sorting",
-	"main": "main.js",
+	"main": "dist/main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
