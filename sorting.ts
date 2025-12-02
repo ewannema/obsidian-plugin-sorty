@@ -16,7 +16,7 @@ export interface SortedResult {
 export function normalizeSelection(anchor: number, head: number): LineRange {
 	return {
 		fromLine: Math.min(anchor, head),
-		toLine: Math.max(anchor, head)
+		toLine: Math.max(anchor, head),
 	};
 }
 
@@ -53,7 +53,7 @@ export function sortLinesArray(
 
 	return {
 		sortedLines,
-		lineCount: sortedLines.length
+		lineCount: sortedLines.length,
 	};
 }
 
@@ -73,26 +73,10 @@ export function sortMultipleRanges(
 	groupTaskLines: (lines: string[]) => string[][]
 ): Array<{ range: LineRange; result: SortedResult }> {
 	// Sort ranges in reverse order (bottom to top) to avoid position shifts
-	const sortedRanges = [...ranges].sort((a, b) =>
-		b.range.fromLine - a.range.fromLine
-	);
+	const sortedRanges = [...ranges].sort((a, b) => b.range.fromLine - a.range.fromLine);
 
 	return sortedRanges.map(({ range, lines }) => ({
 		range,
-		result: sortLinesArray(lines, compareFn, groupNested, groupTaskLines)
+		result: sortLinesArray(lines, compareFn, groupNested, groupTaskLines),
 	}));
-}
-
-/**
- * Calculates the new selection position after sorting.
- * The selection spans from the start of the first line to the end of the last line.
- */
-export function calculateNewSelection(
-	fromLine: number,
-	lineCount: number
-): { anchor: { line: number; ch: number }; head: { line: number; ch: number } } {
-	return {
-		anchor: { line: fromLine, ch: 0 },
-		head: { line: fromLine + lineCount - 1, ch: 0 }
-	};
 }

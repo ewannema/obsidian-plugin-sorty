@@ -1,9 +1,4 @@
-import {
-	normalizeSelection,
-	sortLinesArray,
-	sortMultipleRanges,
-	calculateNewSelection
-} from './sorting';
+import { normalizeSelection, sortLinesArray, sortMultipleRanges } from './sorting';
 import { SortComparators, groupTaskLines } from './main';
 
 describe('normalizeSelection', () => {
@@ -70,7 +65,7 @@ describe('sortLinesArray', () => {
 				'  - [ ] Nested under zebra',
 				'- [ ] Apple task',
 				'  - [ ] Nested under apple',
-				'  - [ ] Another nested'
+				'  - [ ] Another nested',
 			];
 			const result = sortLinesArray(lines, SortComparators.tasks, true, groupTaskLines);
 			expect(result.sortedLines).toEqual([
@@ -78,7 +73,7 @@ describe('sortLinesArray', () => {
 				'  - [ ] Nested under apple',
 				'  - [ ] Another nested',
 				'- [ ] Zebra task',
-				'  - [ ] Nested under zebra'
+				'  - [ ] Nested under zebra',
 			]);
 			expect(result.lineCount).toBe(5);
 		});
@@ -89,7 +84,7 @@ describe('sortLinesArray', () => {
 				'  Description for B',
 				'  More details',
 				'- [ ] Task A',
-				'  Description for A'
+				'  Description for A',
 			];
 			const result = sortLinesArray(lines, SortComparators.tasks, true, groupTaskLines);
 			expect(result.sortedLines).toEqual([
@@ -97,7 +92,7 @@ describe('sortLinesArray', () => {
 				'  Description for A',
 				'- [ ] Task B',
 				'  Description for B',
-				'  More details'
+				'  More details',
 			]);
 		});
 
@@ -114,7 +109,7 @@ describe('sortMultipleRanges', () => {
 		const ranges = [
 			{ range: { fromLine: 0, toLine: 2 }, lines: ['c', 'a', 'b'] },
 			{ range: { fromLine: 5, toLine: 7 }, lines: ['z', 'x', 'y'] },
-			{ range: { fromLine: 10, toLine: 12 }, lines: ['3', '1', '2'] }
+			{ range: { fromLine: 10, toLine: 12 }, lines: ['3', '1', '2'] },
 		];
 
 		const results = sortMultipleRanges(ranges, SortComparators.alpha, false, groupTaskLines);
@@ -131,9 +126,7 @@ describe('sortMultipleRanges', () => {
 	});
 
 	it('should handle single range', () => {
-		const ranges = [
-			{ range: { fromLine: 0, toLine: 2 }, lines: ['c', 'a', 'b'] }
-		];
+		const ranges = [{ range: { fromLine: 0, toLine: 2 }, lines: ['c', 'a', 'b'] }];
 
 		const results = sortMultipleRanges(ranges, SortComparators.alpha, false, groupTaskLines);
 
@@ -149,7 +142,7 @@ describe('sortMultipleRanges', () => {
 	it('should not mutate original ranges', () => {
 		const ranges = [
 			{ range: { fromLine: 0, toLine: 1 }, lines: ['b', 'a'] },
-			{ range: { fromLine: 5, toLine: 6 }, lines: ['d', 'c'] }
+			{ range: { fromLine: 5, toLine: 6 }, lines: ['d', 'c'] },
 		];
 		const original = JSON.parse(JSON.stringify(ranges));
 
@@ -162,13 +155,8 @@ describe('sortMultipleRanges', () => {
 		const ranges = [
 			{
 				range: { fromLine: 0, toLine: 4 },
-				lines: [
-					'- [ ] Task B',
-					'  - [ ] Nested B',
-					'- [ ] Task A',
-					'  - [ ] Nested A'
-				]
-			}
+				lines: ['- [ ] Task B', '  - [ ] Nested B', '- [ ] Task A', '  - [ ] Nested A'],
+			},
 		];
 
 		const results = sortMultipleRanges(ranges, SortComparators.tasks, true, groupTaskLines);
@@ -177,7 +165,7 @@ describe('sortMultipleRanges', () => {
 			'- [ ] Task A',
 			'  - [ ] Nested A',
 			'- [ ] Task B',
-			'  - [ ] Nested B'
+			'  - [ ] Nested B',
 		]);
 	});
 
@@ -186,7 +174,7 @@ describe('sortMultipleRanges', () => {
 		const ranges = [
 			{ range: { fromLine: 10, toLine: 12 }, lines: ['3', '1', '2'] },
 			{ range: { fromLine: 0, toLine: 2 }, lines: ['c', 'a', 'b'] },
-			{ range: { fromLine: 5, toLine: 7 }, lines: ['z', 'x', 'y'] }
+			{ range: { fromLine: 5, toLine: 7 }, lines: ['z', 'x', 'y'] },
 		];
 
 		const results = sortMultipleRanges(ranges, SortComparators.alpha, false, groupTaskLines);
@@ -199,45 +187,11 @@ describe('sortMultipleRanges', () => {
 
 	it('should work with different comparators', () => {
 		const ranges = [
-			{ range: { fromLine: 0, toLine: 2 }, lines: ['file10.txt', 'file2.txt', 'file1.txt'] }
+			{ range: { fromLine: 0, toLine: 2 }, lines: ['file10.txt', 'file2.txt', 'file1.txt'] },
 		];
 
 		const results = sortMultipleRanges(ranges, SortComparators.numeric, false, groupTaskLines);
 
 		expect(results[0].result.sortedLines).toEqual(['file1.txt', 'file2.txt', 'file10.txt']);
-	});
-});
-
-describe('calculateNewSelection', () => {
-	it('should calculate selection for single line', () => {
-		const result = calculateNewSelection(5, 1);
-		expect(result).toEqual({
-			anchor: { line: 5, ch: 0 },
-			head: { line: 5, ch: 0 }
-		});
-	});
-
-	it('should calculate selection for multiple lines', () => {
-		const result = calculateNewSelection(5, 3);
-		expect(result).toEqual({
-			anchor: { line: 5, ch: 0 },
-			head: { line: 7, ch: 0 }
-		});
-	});
-
-	it('should handle starting at line 0', () => {
-		const result = calculateNewSelection(0, 5);
-		expect(result).toEqual({
-			anchor: { line: 0, ch: 0 },
-			head: { line: 4, ch: 0 }
-		});
-	});
-
-	it('should calculate correct end line for large ranges', () => {
-		const result = calculateNewSelection(10, 100);
-		expect(result).toEqual({
-			anchor: { line: 10, ch: 0 },
-			head: { line: 109, ch: 0 }
-		});
 	});
 });

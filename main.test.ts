@@ -29,40 +29,27 @@ describe('Task Nesting Helpers', () => {
 				'  - [ ] Child 1.1',
 				'  - [ ] Child 1.2',
 				'- [ ] Parent 2',
-				'  - [ ] Child 2.1'
+				'  - [ ] Child 2.1',
 			];
 			const groups = groupTaskLines(lines);
 			expect(groups).toEqual([
 				['- [ ] Parent 1', '  - [ ] Child 1.1', '  - [ ] Child 1.2'],
-				['- [ ] Parent 2', '  - [ ] Child 2.1']
+				['- [ ] Parent 2', '  - [ ] Child 2.1'],
 			]);
 		});
 
 		it('should handle tasks without children', () => {
-			const lines = [
-				'- [ ] Task 1',
-				'- [ ] Task 2',
-				'- [ ] Task 3'
-			];
+			const lines = ['- [ ] Task 1', '- [ ] Task 2', '- [ ] Task 3'];
 			const groups = groupTaskLines(lines);
-			expect(groups).toEqual([
-				['- [ ] Task 1'],
-				['- [ ] Task 2'],
-				['- [ ] Task 3']
-			]);
+			expect(groups).toEqual([['- [ ] Task 1'], ['- [ ] Task 2'], ['- [ ] Task 3']]);
 		});
 
 		it('should handle mixed indented and non-indented lines', () => {
-			const lines = [
-				'- [ ] Task 1',
-				'  Some description',
-				'  More details',
-				'- [ ] Task 2'
-			];
+			const lines = ['- [ ] Task 1', '  Some description', '  More details', '- [ ] Task 2'];
 			const groups = groupTaskLines(lines);
 			expect(groups).toEqual([
 				['- [ ] Task 1', '  Some description', '  More details'],
-				['- [ ] Task 2']
+				['- [ ] Task 2'],
 			]);
 		});
 
@@ -72,26 +59,21 @@ describe('Task Nesting Helpers', () => {
 				'  - [ ] Child',
 				'    - [ ] Grandchild',
 				'      - [ ] Great-grandchild',
-				'- [ ] Another parent'
+				'- [ ] Another parent',
 			];
 			const groups = groupTaskLines(lines);
 			expect(groups).toEqual([
 				['- [ ] Parent', '  - [ ] Child', '    - [ ] Grandchild', '      - [ ] Great-grandchild'],
-				['- [ ] Another parent']
+				['- [ ] Another parent'],
 			]);
 		});
 
 		it('should handle lines before first task', () => {
-			const lines = [
-				'Some header',
-				'Another line',
-				'- [ ] First task',
-				'  - [ ] Nested'
-			];
+			const lines = ['Some header', 'Another line', '- [ ] First task', '  - [ ] Nested'];
 			const groups = groupTaskLines(lines);
 			expect(groups).toEqual([
 				['Some header', 'Another line'],
-				['- [ ] First task', '  - [ ] Nested']
+				['- [ ] First task', '  - [ ] Nested'],
 			]);
 		});
 	});
@@ -236,14 +218,14 @@ describe('SortComparators', () => {
 				'- [x] Write tests',
 				'- [ ] Add feature',
 				'- [X] Review code',
-				'- [ ] Fix bug'
+				'- [ ] Fix bug',
 			];
 			const sorted = tasks.sort(SortComparators.tasks);
 			expect(sorted).toEqual([
 				'- [ ] Add feature',
 				'- [ ] Fix bug',
 				'- [X] Review code',
-				'- [x] Write tests'
+				'- [x] Write tests',
 			]);
 		});
 
@@ -252,23 +234,19 @@ describe('SortComparators', () => {
 				'- [x] Zebra task',
 				'- [ ] Apple task',
 				'- [X] Banana task',
-				'- [ ] Mango task'
+				'- [ ] Mango task',
 			];
 			const sorted = tasks.sort(SortComparators.tasks);
 			expect(sorted).toEqual([
 				'- [ ] Apple task',
 				'- [X] Banana task',
 				'- [ ] Mango task',
-				'- [x] Zebra task'
+				'- [x] Zebra task',
 			]);
 		});
 
 		it('should preserve completion markers', () => {
-			const tasks = [
-				'- [x] Task C',
-				'- [ ] Task A',
-				'- [X] Task B'
-			];
+			const tasks = ['- [x] Task C', '- [ ] Task A', '- [X] Task B'];
 			const sorted = tasks.sort(SortComparators.tasks);
 			expect(sorted[0]).toBe('- [ ] Task A');
 			expect(sorted[1]).toBe('- [X] Task B');
@@ -276,45 +254,21 @@ describe('SortComparators', () => {
 		});
 
 		it('should handle non-task lines as fallback', () => {
-			const lines = [
-				'- [x] Task',
-				'Regular line',
-				'- [ ] Another task'
-			];
+			const lines = ['- [x] Task', 'Regular line', '- [ ] Another task'];
 			const sorted = lines.sort(SortComparators.tasks);
-			expect(sorted).toEqual([
-				'- [ ] Another task',
-				'Regular line',
-				'- [x] Task'
-			]);
+			expect(sorted).toEqual(['- [ ] Another task', 'Regular line', '- [x] Task']);
 		});
 
 		it('should handle tasks with empty names', () => {
-			const tasks = [
-				'- [x] ',
-				'- [ ] Task A',
-				'- [ ] '
-			];
+			const tasks = ['- [x] ', '- [ ] Task A', '- [ ] '];
 			const sorted = tasks.sort(SortComparators.tasks);
-			expect(sorted).toEqual([
-				'- [x] ',
-				'- [ ] ',
-				'- [ ] Task A'
-			]);
+			expect(sorted).toEqual(['- [x] ', '- [ ] ', '- [ ] Task A']);
 		});
 
 		it('should be case-sensitive', () => {
-			const tasks = [
-				'- [ ] zebra',
-				'- [x] Apple',
-				'- [ ] Banana'
-			];
+			const tasks = ['- [ ] zebra', '- [x] Apple', '- [ ] Banana'];
 			const sorted = tasks.sort(SortComparators.tasks);
-			expect(sorted).toEqual([
-				'- [x] Apple',
-				'- [ ] Banana',
-				'- [ ] zebra'
-			]);
+			expect(sorted).toEqual(['- [x] Apple', '- [ ] Banana', '- [ ] zebra']);
 		});
 	});
 
@@ -324,45 +278,29 @@ describe('SortComparators', () => {
 				'- [x] Completed 1',
 				'- [ ] Incomplete 1',
 				'- [X] Completed 2',
-				'- [ ] Incomplete 2'
+				'- [ ] Incomplete 2',
 			];
 			const sorted = tasks.sort(SortComparators.tasksByCompletion);
 			expect(sorted).toEqual([
 				'- [ ] Incomplete 1',
 				'- [ ] Incomplete 2',
 				'- [x] Completed 1',
-				'- [X] Completed 2'
+				'- [X] Completed 2',
 			]);
 		});
 
 		it('should maintain stable order within incomplete tasks', () => {
-			const tasks = [
-				'- [ ] Task C',
-				'- [ ] Task A',
-				'- [ ] Task B'
-			];
+			const tasks = ['- [ ] Task C', '- [ ] Task A', '- [ ] Task B'];
 			const sorted = tasks.sort(SortComparators.tasksByCompletion);
 			// Order should be preserved since all are incomplete
-			expect(sorted).toEqual([
-				'- [ ] Task C',
-				'- [ ] Task A',
-				'- [ ] Task B'
-			]);
+			expect(sorted).toEqual(['- [ ] Task C', '- [ ] Task A', '- [ ] Task B']);
 		});
 
 		it('should maintain stable order within completed tasks', () => {
-			const tasks = [
-				'- [x] Task Z',
-				'- [X] Task M',
-				'- [x] Task A'
-			];
+			const tasks = ['- [x] Task Z', '- [X] Task M', '- [x] Task A'];
 			const sorted = tasks.sort(SortComparators.tasksByCompletion);
 			// Order should be preserved since all are completed
-			expect(sorted).toEqual([
-				'- [x] Task Z',
-				'- [X] Task M',
-				'- [x] Task A'
-			]);
+			expect(sorted).toEqual(['- [x] Task Z', '- [X] Task M', '- [x] Task A']);
 		});
 
 		it('should maintain stable order in mixed list', () => {
@@ -372,7 +310,7 @@ describe('SortComparators', () => {
 				'- [X] Completed M',
 				'- [ ] Incomplete A',
 				'- [x] Completed A',
-				'- [ ] Incomplete B'
+				'- [ ] Incomplete B',
 			];
 			const sorted = tasks.sort(SortComparators.tasksByCompletion);
 			expect(sorted).toEqual([
@@ -383,51 +321,27 @@ describe('SortComparators', () => {
 				// Completed tasks in original order
 				'- [x] Completed Z',
 				'- [X] Completed M',
-				'- [x] Completed A'
+				'- [x] Completed A',
 			]);
 		});
 
 		it('should handle all incomplete tasks', () => {
-			const tasks = [
-				'- [ ] Task 3',
-				'- [ ] Task 1',
-				'- [ ] Task 2'
-			];
+			const tasks = ['- [ ] Task 3', '- [ ] Task 1', '- [ ] Task 2'];
 			const sorted = tasks.sort(SortComparators.tasksByCompletion);
-			expect(sorted).toEqual([
-				'- [ ] Task 3',
-				'- [ ] Task 1',
-				'- [ ] Task 2'
-			]);
+			expect(sorted).toEqual(['- [ ] Task 3', '- [ ] Task 1', '- [ ] Task 2']);
 		});
 
 		it('should handle all completed tasks', () => {
-			const tasks = [
-				'- [x] Task 3',
-				'- [X] Task 1',
-				'- [x] Task 2'
-			];
+			const tasks = ['- [x] Task 3', '- [X] Task 1', '- [x] Task 2'];
 			const sorted = tasks.sort(SortComparators.tasksByCompletion);
-			expect(sorted).toEqual([
-				'- [x] Task 3',
-				'- [X] Task 1',
-				'- [x] Task 2'
-			]);
+			expect(sorted).toEqual(['- [x] Task 3', '- [X] Task 1', '- [x] Task 2']);
 		});
 
 		it('should handle non-task lines as incomplete', () => {
-			const lines = [
-				'- [x] Completed task',
-				'Regular line',
-				'- [ ] Incomplete task'
-			];
+			const lines = ['- [x] Completed task', 'Regular line', '- [ ] Incomplete task'];
 			const sorted = lines.sort(SortComparators.tasksByCompletion);
 			// Non-task lines are treated as incomplete
-			expect(sorted).toEqual([
-				'Regular line',
-				'- [ ] Incomplete task',
-				'- [x] Completed task'
-			]);
+			expect(sorted).toEqual(['Regular line', '- [ ] Incomplete task', '- [x] Completed task']);
 		});
 	});
 });

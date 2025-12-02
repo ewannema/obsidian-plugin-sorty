@@ -1,0 +1,17 @@
+# Build outputs
+main.js
+dist/
+build/
+*.js.map
+
+# Dependencies
+node_modules/
+
+# Coverage
+coverage/
+
+# Obsidian
+data.json
+
+# Lock files
+package-lock.json
