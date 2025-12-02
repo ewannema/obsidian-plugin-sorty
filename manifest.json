@@ -1,0 +1,10 @@
+{
+	"id": "sorty",
+	"name": "Sorty",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Adds various forms of text sorting",
+	"author": "Eric Wannemacher",
+	"authorUrl": "https://github.com/ewannema/obsidian-plugin-sorty",
+	"isDesktopOnly": false
+}
