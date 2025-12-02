@@ -1,4 +1,5 @@
 import { App, Editor, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { normalizeSelection, sortMultipleRanges } from './sorting';
 
 // Helper function to check if a line is a top-level task (no leading whitespace)
 export function isTopLevelTask(line: string): boolean {
@@ -151,15 +152,6 @@ export default class Sorty extends Plugin {
 		}
 
 		this.addSettingTab(new SortySettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
 	onunload() {
@@ -179,41 +171,51 @@ export default class Sorty extends Plugin {
 		compareFn: (a: string, b: string) => number = SortComparators.alpha,
 		groupNested: boolean = false
 	) {
-		const from = editor.getCursor('from');
-		const to = editor.getCursor('to');
+		// Get all selections to support multiple cursors
+		const selections = editor.listSelections();
 
-		// Get all lines in the selection range
-		const lines: string[] = [];
-		for (let i = from.line; i <= to.line; i++) {
-			lines.push(editor.getLine(i));
+		// Build ranges with their content
+		const ranges = selections.map(selection => {
+			const range = normalizeSelection(selection.anchor.line, selection.head.line);
+			const lines: string[] = [];
+			for (let i = range.fromLine; i <= range.toLine; i++) {
+				lines.push(editor.getLine(i));
+			}
+			return { range, lines };
+		});
+
+		// Sort all ranges (returns in reverse order for processing)
+		const sortedRanges = sortMultipleRanges(ranges, compareFn, groupNested, groupTaskLines);
+
+		const newSelections: Array<{anchor: {line: number, ch: number}, head: {line: number, ch: number}}> = [];
+
+		// Apply sorted results to editor (in reverse order to avoid position shifts)
+		for (const { range, result } of sortedRanges) {
+			const from = { line: range.fromLine, ch: 0 };
+			const to = {
+				line: range.toLine,
+				ch: editor.getLine(range.toLine).length
+			};
+
+			// Replace the lines with sorted versions
+			editor.replaceRange(
+				result.sortedLines.join('\n'),
+				from,
+				to
+			);
+
+			// Preserve the selection for this range
+			newSelections.push({
+				anchor: { line: range.fromLine, ch: 0 },
+				head: {
+					line: range.fromLine + result.lineCount - 1,
+					ch: editor.getLine(range.fromLine + result.lineCount - 1).length
+				}
+			});
 		}
 
-		let sortedLines: string[];
-
-		// Check if we should group nested items together
-		if (groupNested) {
-			// Group lines by top-level tasks
-			const groups = groupTaskLines(lines);
-
-			// Sort groups by their first line (the parent task)
-			const sortedGroups = groups.sort((a, b) => compareFn(a[0], b[0]));
-
-			// Flatten back to individual lines
-			sortedLines = sortedGroups.flat();
-		} else {
-			// Normal line-by-line sorting
-			sortedLines = lines.sort(compareFn);
-		}
-
-		// Replace the lines with sorted versions
-		editor.replaceRange(
-			sortedLines.join('\n'),
-			{ line: from.line, ch: 0 },
-			{ line: to.line, ch: editor.getLine(to.line).length }
-		);
-
-		// Move cursor to the first line
-		editor.setCursor({ line: from.line, ch: 0 });
+		// Restore all selections (in original order)
+		editor.setSelections(newSelections.reverse());
 	}
 }
 
