@@ -179,41 +179,68 @@ export default class Sorty extends Plugin {
 		compareFn: (a: string, b: string) => number = SortComparators.alpha,
 		groupNested: boolean = false
 	) {
-		const from = editor.getCursor('from');
-		const to = editor.getCursor('to');
+		// Get all selections to support multiple cursors
+		const selections = editor.listSelections();
 
-		// Get all lines in the selection range
-		const lines: string[] = [];
-		for (let i = from.line; i <= to.line; i++) {
-			lines.push(editor.getLine(i));
+		// Process selections in reverse order to avoid position shifts
+		// when replacing text
+		const sortedSelections = [...selections].sort((a, b) => {
+			const aStart = Math.min(a.anchor.line, a.head.line);
+			const bStart = Math.min(b.anchor.line, b.head.line);
+			return bStart - aStart; // Reverse order
+		});
+
+		const newSelections: Array<{anchor: {line: number, ch: number}, head: {line: number, ch: number}}> = [];
+
+		for (const selection of sortedSelections) {
+			const from = {
+				line: Math.min(selection.anchor.line, selection.head.line),
+				ch: 0
+			};
+			const to = {
+				line: Math.max(selection.anchor.line, selection.head.line),
+				ch: editor.getLine(Math.max(selection.anchor.line, selection.head.line)).length
+			};
+
+			// Get all lines in the selection range
+			const lines: string[] = [];
+			for (let i = from.line; i <= to.line; i++) {
+				lines.push(editor.getLine(i));
+			}
+
+			let sortedLines: string[];
+
+			// Check if we should group nested items together
+			if (groupNested) {
+				// Group lines by top-level tasks
+				const groups = groupTaskLines(lines);
+
+				// Sort groups by their first line (the parent task)
+				const sortedGroups = groups.sort((a, b) => compareFn(a[0], b[0]));
+
+				// Flatten back to individual lines
+				sortedLines = sortedGroups.flat();
+			} else {
+				// Normal line-by-line sorting
+				sortedLines = lines.sort(compareFn);
+			}
+
+			// Replace the lines with sorted versions
+			editor.replaceRange(
+				sortedLines.join('\n'),
+				from,
+				to
+			);
+
+			// Preserve the selection for this range
+			newSelections.push({
+				anchor: { line: from.line, ch: 0 },
+				head: { line: from.line + sortedLines.length - 1, ch: editor.getLine(from.line + sortedLines.length - 1).length }
+			});
 		}
 
-		let sortedLines: string[];
-
-		// Check if we should group nested items together
-		if (groupNested) {
-			// Group lines by top-level tasks
-			const groups = groupTaskLines(lines);
-
-			// Sort groups by their first line (the parent task)
-			const sortedGroups = groups.sort((a, b) => compareFn(a[0], b[0]));
-
-			// Flatten back to individual lines
-			sortedLines = sortedGroups.flat();
-		} else {
-			// Normal line-by-line sorting
-			sortedLines = lines.sort(compareFn);
-		}
-
-		// Replace the lines with sorted versions
-		editor.replaceRange(
-			sortedLines.join('\n'),
-			{ line: from.line, ch: 0 },
-			{ line: to.line, ch: editor.getLine(to.line).length }
-		);
-
-		// Move cursor to the first line
-		editor.setCursor({ line: from.line, ch: 0 });
+		// Restore all selections (in original order)
+		editor.setSelections(newSelections.reverse());
 	}
 }
 
