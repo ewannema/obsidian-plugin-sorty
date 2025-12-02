@@ -72,13 +72,13 @@ npm test
 
 ## Manifest rules (`manifest.json`)
 
-- Must include (non-exhaustive):  
-  - `id` (plugin ID; for local dev it should match the folder name)  
-  - `name`  
-  - `version` (Semantic Versioning `x.y.z`)  
-  - `minAppVersion`  
-  - `description`  
-  - `isDesktopOnly` (boolean)  
+- Must include (non-exhaustive):
+  - `id` (plugin ID; for local dev it should match the folder name)
+  - `name`
+  - `version` (Semantic Versioning `x.y.z`)
+  - `minAppVersion`
+  - `description`
+  - `isDesktopOnly` (boolean)
   - Optional: `author`, `authorUrl`, `fundingUrl` (string or map)
 - Never change `id` after release. Treat it as stable API.
 - Keep `minAppVersion` accurate when using newer APIs.
@@ -104,9 +104,10 @@ npm test
 ### Settings
 
 Settings are stored as a map of command IDs to boolean enabled states:
+
 ```typescript
 interface SortySettings {
-    commandsEnabled: Record<string, boolean>;
+	commandsEnabled: Record<string, boolean>;
 }
 ```
 
@@ -189,12 +190,14 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 ## Agent do/don't
 
 **Do**
+
 - Add commands with stable IDs (don't rename once released).
 - Provide defaults and validation in settings.
 - Write idempotent code paths so reload/unload doesn't leak listeners or intervals.
 - Use `this.register*` helpers for everything that needs cleanup.
 
 **Don't**
+
 - Introduce network calls without an obvious user-facing reason and documentation.
 - Ship features that require cloud services without clear disclosure and explicit opt-in.
 - Store or transmit vault contents unless essential and consented.
@@ -206,42 +209,46 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 To add a new sort command to the Sorty plugin:
 
 1. **Create a comparator function** in `SortComparators`:
+
 ```ts
 export const SortComparators = {
-  // ... existing comparators ...
-  myNewSort: (a: string, b: string) => {
-    // Your comparison logic here
-    return a.localeCompare(b);
-  },
+	// ... existing comparators ...
+	myNewSort: (a: string, b: string) => {
+		// Your comparison logic here
+		return a.localeCompare(b);
+	},
 };
 ```
 
 2. **Add the command definition** to `SORT_COMMANDS`:
+
 ```ts
 const SORT_COMMANDS: SortCommand[] = [
-  // ... existing commands ...
-  {
-    id: 'sorty-my-new-sort',
-    name: 'My New Sort',
-    comparator: SortComparators.myNewSort,
-    enabledByDefault: true,
-    groupNested: false  // Set to true if it should respect nested tasks
-  },
+	// ... existing commands ...
+	{
+		id: 'sorty-my-new-sort',
+		name: 'My New Sort',
+		comparator: SortComparators.myNewSort,
+		enabledByDefault: true,
+		groupNested: false, // Set to true if it should respect nested tasks
+	},
 ];
 ```
 
 3. **Add tests** in `main.test.ts`:
+
 ```ts
 describe('myNewSort', () => {
-  it('should sort correctly', () => {
-    const lines = ['b', 'a', 'c'];
-    const sorted = lines.sort(SortComparators.myNewSort);
-    expect(sorted).toEqual(['a', 'b', 'c']);
-  });
+	it('should sort correctly', () => {
+		const lines = ['b', 'a', 'c'];
+		const sorted = lines.sort(SortComparators.myNewSort);
+		expect(sorted).toEqual(['a', 'b', 'c']);
+	});
 });
 ```
 
 The command will automatically:
+
 - Appear in settings with a toggle
 - Show/hide in command palette based on settings
 - Work with the existing sorting infrastructure
@@ -249,6 +256,7 @@ The command will automatically:
 ### Modify sorting behavior
 
 The `sortLines` method handles all sorting. It:
+
 1. Gets selected lines from the editor
 2. Checks if `groupNested` is enabled for the command
 3. If yes, groups lines using `groupTaskLines()` and sorts groups by first line
@@ -258,14 +266,24 @@ The `sortLines` method handles all sorting. It:
 ### Register listeners safely
 
 ```ts
-this.registerEvent(this.app.workspace.on("file-open", f => { /* ... */ }));
-this.registerDomEvent(window, "resize", () => { /* ... */ });
-this.registerInterval(window.setInterval(() => { /* ... */ }, 1000));
+this.registerEvent(
+	this.app.workspace.on('file-open', f => {
+		/* ... */
+	})
+);
+this.registerDomEvent(window, 'resize', () => {
+	/* ... */
+});
+this.registerInterval(
+	window.setInterval(() => {
+		/* ... */
+	}, 1000)
+);
 ```
 
 ## Troubleshooting
 
-- Plugin doesn't load after build: ensure `main.js` and `manifest.json` are at the top level of the plugin folder under `<Vault>/.obsidian/plugins/<plugin-id>/`. 
+- Plugin doesn't load after build: ensure `main.js` and `manifest.json` are at the top level of the plugin folder under `<Vault>/.obsidian/plugins/<plugin-id>/`.
 - Build issues: if `main.js` is missing, run `npm run build` or `npm run dev` to compile your TypeScript source code.
 - Commands not appearing: verify `addCommand` runs after `onload` and IDs are unique.
 - Settings not persisting: ensure `loadData`/`saveData` are awaited and you re-render the UI after changes.

@@ -37,6 +37,7 @@ All sort commands work on the currently selected lines in your editor.
 When sorting tasks, the plugin groups parent tasks with their indented children:
 
 **Before sorting:**
+
 ```markdown
 - [ ] Zebra task
   - [ ] Zebra subtask 1
@@ -46,6 +47,7 @@ When sorting tasks, the plugin groups parent tasks with their indented children:
 ```
 
 **After "Sort Tasks":**
+
 ```markdown
 - [ ] Apple task
   - [ ] Apple subtask

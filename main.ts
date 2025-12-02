@@ -1,9 +1,10 @@
 import { App, Editor, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { normalizeSelection, sortMultipleRanges } from './sorting';
+import { TASK_REGEX, TASK_EXTRACT_REGEX, COMPLETED_TASK_REGEX } from './constants';
 
 // Helper function to check if a line is a top-level task (no leading whitespace)
 export function isTopLevelTask(line: string): boolean {
-	return /^- \[[xX ]\] /.test(line);
+	return TASK_REGEX.test(line);
 }
 
 // Helper function to group lines into task blocks (parent + nested children)
@@ -40,7 +41,7 @@ export const SortComparators = {
 	tasks: (a: string, b: string) => {
 		// Extract task name from "- [ ] task" or "- [x] task" or "- [X] task" format
 		const extractTaskName = (line: string): string => {
-			const match = line.match(/^- \[[xX ]\] (.*)$/);
+			const match = line.match(TASK_EXTRACT_REGEX);
 			return match ? match[1] : line;
 		};
 		return extractTaskName(a).localeCompare(extractTaskName(b));
@@ -48,7 +49,7 @@ export const SortComparators = {
 	tasksByCompletion: (a: string, b: string) => {
 		// Check if a task is completed (has [x] or [X])
 		const isCompleted = (line: string): boolean => {
-			return /^- \[[xX]\] /.test(line);
+			return COMPLETED_TASK_REGEX.test(line);
 		};
 
 		const aCompleted = isCompleted(a);
@@ -68,7 +69,7 @@ interface SortCommand {
 	name: string;
 	comparator: (a: string, b: string) => number;
 	enabledByDefault: boolean;
-	groupNested?: boolean;  // Whether to group nested tasks/items together when sorting
+	groupNested?: boolean; // Whether to group nested tasks/items together when sorting
 }
 
 const SORT_COMMANDS: SortCommand[] = [
@@ -76,39 +77,39 @@ const SORT_COMMANDS: SortCommand[] = [
 		id: 'sorty-sort-lines',
 		name: 'Sort Lines',
 		comparator: SortComparators.alpha,
-		enabledByDefault: true
+		enabledByDefault: true,
 	},
 	{
 		id: 'sorty-sort-lines-reverse',
 		name: 'Sort Lines (Reverse)',
 		comparator: SortComparators.reverseAlpha,
-		enabledByDefault: true
+		enabledByDefault: true,
 	},
 	{
 		id: 'sorty-sort-lines-numeric',
 		name: 'Sort Lines (Numeric)',
 		comparator: SortComparators.numeric,
-		enabledByDefault: true
+		enabledByDefault: true,
 	},
 	{
 		id: 'sorty-sort-lines-numeric-reverse',
 		name: 'Sort Lines (Numeric Reverse)',
 		comparator: SortComparators.reverseNumeric,
-		enabledByDefault: true
+		enabledByDefault: true,
 	},
 	{
 		id: 'sorty-sort-tasks',
 		name: 'Sort Tasks',
 		comparator: SortComparators.tasks,
 		enabledByDefault: true,
-		groupNested: true
+		groupNested: true,
 	},
 	{
 		id: 'sorty-sort-tasks-by-completion',
 		name: 'Sort Tasks (By Completion)',
 		comparator: SortComparators.tasksByCompletion,
 		enabledByDefault: true,
-		groupNested: true
+		groupNested: true,
 	},
 ];
 
@@ -117,13 +118,11 @@ interface SortySettings {
 }
 
 const DEFAULT_SETTINGS: SortySettings = {
-	commandsEnabled: Object.fromEntries(
-		SORT_COMMANDS.map(cmd => [cmd.id, cmd.enabledByDefault])
-	),
+	commandsEnabled: Object.fromEntries(SORT_COMMANDS.map(cmd => [cmd.id, cmd.enabledByDefault])),
 };
 
 export default class Sorty extends Plugin {
-	settings: SortySettings;
+	settings: SortySettings = DEFAULT_SETTINGS;
 
 	async onload() {
 		await this.loadSettings();
@@ -147,15 +146,14 @@ export default class Sorty extends Plugin {
 						return true;
 					}
 					return false;
-				}
+				},
 			});
 		}
 
 		this.addSettingTab(new SortySettingTab(this.app, this));
 	}
 
-	onunload() {
-	}
+	onunload() {}
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -174,12 +172,19 @@ export default class Sorty extends Plugin {
 		// Get all selections to support multiple cursors
 		const selections = editor.listSelections();
 
+		if (selections.length === 0) {
+			return; // No selections to sort
+		}
+
 		// Build ranges with their content
 		const ranges = selections.map(selection => {
 			const range = normalizeSelection(selection.anchor.line, selection.head.line);
 			const lines: string[] = [];
 			for (let i = range.fromLine; i <= range.toLine; i++) {
-				lines.push(editor.getLine(i));
+				const lineContent = editor.getLine(i);
+				if (lineContent !== undefined) {
+					lines.push(lineContent);
+				}
 			}
 			return { range, lines };
 		});
@@ -187,35 +192,42 @@ export default class Sorty extends Plugin {
 		// Sort all ranges (returns in reverse order for processing)
 		const sortedRanges = sortMultipleRanges(ranges, compareFn, groupNested, groupTaskLines);
 
-		const newSelections: Array<{anchor: {line: number, ch: number}, head: {line: number, ch: number}}> = [];
+		const newSelections: Array<{
+			anchor: { line: number; ch: number };
+			head: { line: number; ch: number };
+		}> = [];
 
 		// Apply sorted results to editor (in reverse order to avoid position shifts)
 		for (const { range, result } of sortedRanges) {
+			const toLine = editor.getLine(range.toLine);
+			if (toLine === undefined) {
+				continue; // Skip invalid ranges
+			}
+
 			const from = { line: range.fromLine, ch: 0 };
 			const to = {
 				line: range.toLine,
-				ch: editor.getLine(range.toLine).length
+				ch: toLine.length,
 			};
 
 			// Replace the lines with sorted versions
-			editor.replaceRange(
-				result.sortedLines.join('\n'),
-				from,
-				to
-			);
+			editor.replaceRange(result.sortedLines.join('\n'), from, to);
 
 			// Preserve the selection for this range
+			const lastLine = editor.getLine(range.fromLine + result.lineCount - 1);
 			newSelections.push({
 				anchor: { line: range.fromLine, ch: 0 },
 				head: {
 					line: range.fromLine + result.lineCount - 1,
-					ch: editor.getLine(range.fromLine + result.lineCount - 1).length
-				}
+					ch: lastLine?.length ?? 0,
+				},
 			});
 		}
 
 		// Restore all selections (in original order)
-		editor.setSelections(newSelections.reverse());
+		if (newSelections.length > 0) {
+			editor.setSelections(newSelections.reverse());
+		}
 	}
 }
 
@@ -232,21 +244,20 @@ class SortySettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		new Setting(containerEl)
-			.setName("Features")
-			.setHeading();
+		new Setting(containerEl).setName('Features').setHeading();
 
 		// Create a toggle for each sort command
 		for (const command of SORT_COMMANDS) {
 			new Setting(containerEl)
 				.setName(command.name)
 				.setDesc(`Enable the ${command.name} command`)
-				.addToggle(toggle => toggle
-					.setValue(this.plugin.settings.commandsEnabled[command.id] ?? command.enabledByDefault)
-					.onChange(async (value) => {
-						this.plugin.settings.commandsEnabled[command.id] = value;
-						await this.plugin.saveSettings();
-					})
+				.addToggle(toggle =>
+					toggle
+						.setValue(this.plugin.settings.commandsEnabled[command.id] ?? command.enabledByDefault)
+						.onChange(async value => {
+							this.plugin.settings.commandsEnabled[command.id] = value;
+							await this.plugin.saveSettings();
+						})
 				);
 		}
 	}
