@@ -89,8 +89,20 @@ Changes to settings take effect immediately—no need to restart Obsidian!
 
 ## Manually installing the plugin
 
-1. Build the plugin or download the release.
+### Development
+
+1. Build the plugin with `npm run build`
 2. Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+
+### Release
+
+Install a release from Github. By default the script installs the latest
+version. You can optionally specify a `version` that matches one of the releases
+available on Github.
+
+```
+bin/manual_install.sh <vault_folder> [version]
+```
 
 ## API Documentation
 
