@@ -101,6 +101,42 @@ describe('sortLinesArray', () => {
 			const result = sortLinesArray(lines, SortComparators.tasks, true, groupTaskLines);
 			expect(result.sortedLines).toEqual(['- [ ] A', '- [ ] B', '- [ ] C']);
 		});
+
+		it('should sort indented tasks at the same level while preserving indentation', () => {
+			const lines = [
+				'  - [ ] Zebra sub-task',
+				'  - [ ] Apple sub-task',
+				'  - [ ] Mango sub-task',
+				'  - [ ] Banana sub-task',
+			];
+			const result = sortLinesArray(lines, SortComparators.tasks, true, groupTaskLines);
+			expect(result.sortedLines).toEqual([
+				'  - [ ] Apple sub-task',
+				'  - [ ] Banana sub-task',
+				'  - [ ] Mango sub-task',
+				'  - [ ] Zebra sub-task',
+			]);
+		});
+
+		it('should sort indented tasks with nested children while preserving child order', () => {
+			const lines = [
+				'    - [ ] AlphaB',
+				'        - [ ] BetaB',
+				'        - [ ] BetaC',
+				'        - [ ] BetaA',
+				'    - [ ] AlphaA',
+				'    - [ ] AlphaC',
+			];
+			const result = sortLinesArray(lines, SortComparators.tasks, true, groupTaskLines);
+			expect(result.sortedLines).toEqual([
+				'    - [ ] AlphaA',
+				'    - [ ] AlphaB',
+				'        - [ ] BetaB',
+				'        - [ ] BetaC',
+				'        - [ ] BetaA',
+				'    - [ ] AlphaC',
+			]);
+		});
 	});
 });
 
