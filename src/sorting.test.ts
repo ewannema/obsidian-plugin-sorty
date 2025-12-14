@@ -27,7 +27,7 @@ describe('sortLinesArray', () => {
 	describe('without grouping', () => {
 		it('should sort lines alphabetically', () => {
 			const lines = ['zebra', 'apple', 'mango', 'banana'];
-			const result = sortLinesArray(lines, SortComparators.alpha, false, groupTaskLines);
+			const result = sortLinesArray(lines, SortComparators.alpha);
 			expect(result.sortedLines).toEqual(['apple', 'banana', 'mango', 'zebra']);
 			expect(result.lineCount).toBe(4);
 		});
@@ -35,25 +35,25 @@ describe('sortLinesArray', () => {
 		it('should not mutate original array', () => {
 			const lines = ['zebra', 'apple', 'mango'];
 			const original = [...lines];
-			sortLinesArray(lines, SortComparators.alpha, false, groupTaskLines);
+			sortLinesArray(lines, SortComparators.alpha);
 			expect(lines).toEqual(original);
 		});
 
 		it('should handle empty array', () => {
-			const result = sortLinesArray([], SortComparators.alpha, false, groupTaskLines);
+			const result = sortLinesArray([], SortComparators.alpha);
 			expect(result.sortedLines).toEqual([]);
 			expect(result.lineCount).toBe(0);
 		});
 
 		it('should handle single line', () => {
-			const result = sortLinesArray(['only line'], SortComparators.alpha, false, groupTaskLines);
+			const result = sortLinesArray(['only line'], SortComparators.alpha);
 			expect(result.sortedLines).toEqual(['only line']);
 			expect(result.lineCount).toBe(1);
 		});
 
 		it('should work with numeric comparator', () => {
 			const lines = ['file10.txt', 'file2.txt', 'file1.txt'];
-			const result = sortLinesArray(lines, SortComparators.numeric, false, groupTaskLines);
+			const result = sortLinesArray(lines, SortComparators.numeric);
 			expect(result.sortedLines).toEqual(['file1.txt', 'file2.txt', 'file10.txt']);
 		});
 	});
@@ -67,7 +67,7 @@ describe('sortLinesArray', () => {
 				'  - [ ] Nested under apple',
 				'  - [ ] Another nested',
 			];
-			const result = sortLinesArray(lines, SortComparators.tasks, true, groupTaskLines);
+			const result = sortLinesArray(lines, SortComparators.tasks, groupTaskLines);
 			expect(result.sortedLines).toEqual([
 				'- [ ] Apple task',
 				'  - [ ] Nested under apple',
@@ -86,7 +86,7 @@ describe('sortLinesArray', () => {
 				'- [ ] Task A',
 				'  Description for A',
 			];
-			const result = sortLinesArray(lines, SortComparators.tasks, true, groupTaskLines);
+			const result = sortLinesArray(lines, SortComparators.tasks, groupTaskLines);
 			expect(result.sortedLines).toEqual([
 				'- [ ] Task A',
 				'  Description for A',
@@ -98,7 +98,7 @@ describe('sortLinesArray', () => {
 
 		it('should handle tasks without children', () => {
 			const lines = ['- [ ] C', '- [ ] A', '- [ ] B'];
-			const result = sortLinesArray(lines, SortComparators.tasks, true, groupTaskLines);
+			const result = sortLinesArray(lines, SortComparators.tasks, groupTaskLines);
 			expect(result.sortedLines).toEqual(['- [ ] A', '- [ ] B', '- [ ] C']);
 		});
 
@@ -109,7 +109,7 @@ describe('sortLinesArray', () => {
 				'  - [ ] Mango sub-task',
 				'  - [ ] Banana sub-task',
 			];
-			const result = sortLinesArray(lines, SortComparators.tasks, true, groupTaskLines);
+			const result = sortLinesArray(lines, SortComparators.tasks, groupTaskLines);
 			expect(result.sortedLines).toEqual([
 				'  - [ ] Apple sub-task',
 				'  - [ ] Banana sub-task',
@@ -127,7 +127,7 @@ describe('sortLinesArray', () => {
 				'    - [ ] AlphaA',
 				'    - [ ] AlphaC',
 			];
-			const result = sortLinesArray(lines, SortComparators.tasks, true, groupTaskLines);
+			const result = sortLinesArray(lines, SortComparators.tasks, groupTaskLines);
 			expect(result.sortedLines).toEqual([
 				'    - [ ] AlphaA',
 				'    - [ ] AlphaB',
@@ -148,7 +148,7 @@ describe('sortMultipleRanges', () => {
 			{ range: { fromLine: 10, toLine: 12 }, lines: ['3', '1', '2'] },
 		];
 
-		const results = sortMultipleRanges(ranges, SortComparators.alpha, false, groupTaskLines);
+		const results = sortMultipleRanges(ranges, SortComparators.alpha);
 
 		// Should be in reverse order (highest line number first)
 		expect(results[0].range.fromLine).toBe(10);
@@ -164,14 +164,14 @@ describe('sortMultipleRanges', () => {
 	it('should handle single range', () => {
 		const ranges = [{ range: { fromLine: 0, toLine: 2 }, lines: ['c', 'a', 'b'] }];
 
-		const results = sortMultipleRanges(ranges, SortComparators.alpha, false, groupTaskLines);
+		const results = sortMultipleRanges(ranges, SortComparators.alpha);
 
 		expect(results).toHaveLength(1);
 		expect(results[0].result.sortedLines).toEqual(['a', 'b', 'c']);
 	});
 
 	it('should handle empty ranges array', () => {
-		const results = sortMultipleRanges([], SortComparators.alpha, false, groupTaskLines);
+		const results = sortMultipleRanges([], SortComparators.alpha);
 		expect(results).toEqual([]);
 	});
 
@@ -182,7 +182,7 @@ describe('sortMultipleRanges', () => {
 		];
 		const original = JSON.parse(JSON.stringify(ranges));
 
-		sortMultipleRanges(ranges, SortComparators.alpha, false, groupTaskLines);
+		sortMultipleRanges(ranges, SortComparators.alpha);
 
 		expect(ranges).toEqual(original);
 	});
@@ -195,7 +195,7 @@ describe('sortMultipleRanges', () => {
 			},
 		];
 
-		const results = sortMultipleRanges(ranges, SortComparators.tasks, true, groupTaskLines);
+		const results = sortMultipleRanges(ranges, SortComparators.tasks, groupTaskLines);
 
 		expect(results[0].result.sortedLines).toEqual([
 			'- [ ] Task A',
@@ -213,7 +213,7 @@ describe('sortMultipleRanges', () => {
 			{ range: { fromLine: 5, toLine: 7 }, lines: ['z', 'x', 'y'] },
 		];
 
-		const results = sortMultipleRanges(ranges, SortComparators.alpha, false, groupTaskLines);
+		const results = sortMultipleRanges(ranges, SortComparators.alpha);
 
 		// Should be sorted by line number descending
 		expect(results[0].range.fromLine).toBe(10);
@@ -226,7 +226,7 @@ describe('sortMultipleRanges', () => {
 			{ range: { fromLine: 0, toLine: 2 }, lines: ['file10.txt', 'file2.txt', 'file1.txt'] },
 		];
 
-		const results = sortMultipleRanges(ranges, SortComparators.numeric, false, groupTaskLines);
+		const results = sortMultipleRanges(ranges, SortComparators.numeric);
 
 		expect(results[0].result.sortedLines).toEqual(['file1.txt', 'file2.txt', 'file10.txt']);
 	});

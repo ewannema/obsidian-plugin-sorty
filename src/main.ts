@@ -104,7 +104,7 @@ interface SortCommand {
 	name: string;
 	comparator: (a: string, b: string) => number;
 	enabledByDefault: boolean;
-	groupNested?: boolean; // Whether to group nested tasks/items together when sorting
+	groupFn?: (lines: string[]) => string[][]; // Optional function to group lines before sorting
 }
 
 const SORT_COMMANDS: SortCommand[] = [
@@ -137,14 +137,14 @@ const SORT_COMMANDS: SortCommand[] = [
 		name: 'Sort Tasks',
 		comparator: SortComparators.tasks,
 		enabledByDefault: true,
-		groupNested: true,
+		groupFn: groupTaskLines,
 	},
 	{
 		id: 'sorty-sort-tasks-by-completion',
 		name: 'Sort Tasks (By Completion)',
 		comparator: SortComparators.tasksByCompletion,
 		enabledByDefault: true,
-		groupNested: true,
+		groupFn: groupTaskLines,
 	},
 ];
 
@@ -175,7 +175,7 @@ export default class Sorty extends Plugin {
 						if (!checking) {
 							const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 							if (view) {
-								this.sortLines(view.editor, command.comparator, command.groupNested ?? false);
+								this.sortLines(view.editor, command.comparator, command.groupFn);
 							}
 						}
 						return true;
@@ -202,7 +202,7 @@ export default class Sorty extends Plugin {
 	sortLines(
 		editor: Editor,
 		compareFn: (a: string, b: string) => number = SortComparators.alpha,
-		groupNested: boolean = false
+		groupFn?: (lines: string[]) => string[][]
 	) {
 		// Get all selections to support multiple cursors
 		const selections = editor.listSelections();
@@ -225,7 +225,7 @@ export default class Sorty extends Plugin {
 		});
 
 		// Sort all ranges (returns in reverse order for processing)
-		const sortedRanges = sortMultipleRanges(ranges, compareFn, groupNested, groupTaskLines);
+		const sortedRanges = sortMultipleRanges(ranges, compareFn, groupFn);
 
 		const newSelections: Array<{
 			anchor: { line: number; ch: number };
