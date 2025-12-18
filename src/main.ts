@@ -1,103 +1,7 @@
-import { App, Editor, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { normalizeSelection, sortMultipleRanges } from './sorting';
-import { TASK_REGEX, TASK_EXTRACT_REGEX, COMPLETED_TASK_REGEX } from './constants';
-
-// Helper function to check if a line is a top-level task (no leading whitespace)
-export function isTopLevelTask(line: string): boolean {
-	return TASK_REGEX.test(line);
-}
-
-// Helper function to get the indentation level of a line (number of leading spaces/tabs)
-function getIndentationLevel(line: string): number {
-	const match = line.match(/^(\s*)/);
-	return match ? match[1].length : 0;
-}
-
-// Helper function to check if a line is a task (at any indentation level)
-function isTask(line: string): boolean {
-	return /^\s*- \[[xX ]\] /.test(line);
-}
-
-// Helper function to group lines into task blocks (parent + nested children)
-export function groupTaskLines(lines: string[]): string[][] {
-	const groups: string[][] = [];
-	let currentGroup: string[] = [];
-	let baseIndent: number | null = null;
-
-	for (const line of lines) {
-		if (isTask(line)) {
-			const indent = getIndentationLevel(line);
-
-			if (baseIndent === null) {
-				// First task sets the baseline indentation
-				// Push any accumulated non-task lines as a separate group
-				if (currentGroup.length > 0) {
-					groups.push(currentGroup);
-				}
-				baseIndent = indent;
-				currentGroup = [line];
-			} else if (indent < baseIndent) {
-				// Task is less indented than baseline - this shouldn't happen in a valid selection
-				// But we'll handle it gracefully by starting a new group and resetting baseline
-				if (currentGroup.length > 0) {
-					groups.push(currentGroup);
-				}
-				currentGroup = [line];
-				baseIndent = indent;
-			} else if (indent === baseIndent) {
-				// Task at same indentation as baseline - start a new group
-				if (currentGroup.length > 0) {
-					groups.push(currentGroup);
-				}
-				currentGroup = [line];
-			} else {
-				// Task is more indented - it's a child, add to current group
-				currentGroup.push(line);
-			}
-		} else {
-			// Not a task (description, etc.) - add to current group
-			currentGroup.push(line);
-		}
-	}
-
-	// Don't forget the last group
-	if (currentGroup.length > 0) {
-		groups.push(currentGroup);
-	}
-
-	return groups;
-}
-
-export const SortComparators = {
-	alpha: (a: string, b: string) => a.localeCompare(b),
-	reverseAlpha: (a: string, b: string) => b.localeCompare(a),
-	numeric: (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true }),
-	reverseNumeric: (a: string, b: string) => b.localeCompare(a, undefined, { numeric: true }),
-	tasks: (a: string, b: string) => {
-		// Extract task name from "- [ ] task" or "- [x] task" or "- [X] task" format
-		const extractTaskName = (line: string): string => {
-			const match = line.match(TASK_EXTRACT_REGEX);
-			return match ? match[1] : line;
-		};
-		return extractTaskName(a).localeCompare(extractTaskName(b));
-	},
-	tasksByCompletion: (a: string, b: string) => {
-		// Check if a task is completed (has [x] or [X])
-		const isCompleted = (line: string): boolean => {
-			return COMPLETED_TASK_REGEX.test(line);
-		};
-
-		const aCompleted = isCompleted(a);
-		const bCompleted = isCompleted(b);
-
-		// Incomplete tasks come before completed tasks
-		if (!aCompleted && bCompleted) return -1;
-		if (aCompleted && !bCompleted) return 1;
-
-		// Same status - maintain stable order (return 0)
-		return 0;
-	},
-};
+import { App, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { createSorter, SortComparators } from './sorting';
+import { transformLineSelections } from './editor';
+import { groupTaskLines } from './tasks';
 
 interface SortCommand {
 	id: string;
@@ -136,15 +40,15 @@ const SORT_COMMANDS: SortCommand[] = [
 		id: 'sorty-sort-tasks',
 		name: 'Sort Tasks',
 		comparator: SortComparators.tasks,
-		enabledByDefault: true,
 		groupFn: groupTaskLines,
+		enabledByDefault: true,
 	},
 	{
 		id: 'sorty-sort-tasks-by-completion',
 		name: 'Sort Tasks (By Completion)',
 		comparator: SortComparators.tasksByCompletion,
-		enabledByDefault: true,
 		groupFn: groupTaskLines,
+		enabledByDefault: true,
 	},
 ];
 
@@ -175,7 +79,8 @@ export default class Sorty extends Plugin {
 						if (!checking) {
 							const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 							if (view) {
-								this.sortLines(view.editor, command.comparator, command.groupFn);
+								const sorter = createSorter(command.comparator, command.groupFn);
+								transformLineSelections(view.editor, sorter);
 							}
 						}
 						return true;
@@ -196,73 +101,6 @@ export default class Sorty extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-
-	// Sort the selected lines using the provided comparison function
-	sortLines(
-		editor: Editor,
-		compareFn: (a: string, b: string) => number = SortComparators.alpha,
-		groupFn?: (lines: string[]) => string[][]
-	) {
-		// Get all selections to support multiple cursors
-		const selections = editor.listSelections();
-
-		if (selections.length === 0) {
-			return; // No selections to sort
-		}
-
-		// Build ranges with their content
-		const ranges = selections.map(selection => {
-			const range = normalizeSelection(selection.anchor.line, selection.head.line);
-			const lines: string[] = [];
-			for (let i = range.fromLine; i <= range.toLine; i++) {
-				const lineContent = editor.getLine(i);
-				if (lineContent !== undefined) {
-					lines.push(lineContent);
-				}
-			}
-			return { range, lines };
-		});
-
-		// Sort all ranges (returns in reverse order for processing)
-		const sortedRanges = sortMultipleRanges(ranges, compareFn, groupFn);
-
-		const newSelections: Array<{
-			anchor: { line: number; ch: number };
-			head: { line: number; ch: number };
-		}> = [];
-
-		// Apply sorted results to editor (in reverse order to avoid position shifts)
-		for (const { range, result } of sortedRanges) {
-			const toLine = editor.getLine(range.toLine);
-			if (toLine === undefined) {
-				continue; // Skip invalid ranges
-			}
-
-			const from = { line: range.fromLine, ch: 0 };
-			const to = {
-				line: range.toLine,
-				ch: toLine.length,
-			};
-
-			// Replace the lines with sorted versions
-			editor.replaceRange(result.sortedLines.join('\n'), from, to);
-
-			// Preserve the selection for this range
-			const lastLine = editor.getLine(range.fromLine + result.lineCount - 1);
-			newSelections.push({
-				anchor: { line: range.fromLine, ch: 0 },
-				head: {
-					line: range.fromLine + result.lineCount - 1,
-					ch: lastLine?.length ?? 0,
-				},
-			});
-		}
-
-		// Restore all selections (in original order)
-		if (newSelections.length > 0) {
-			editor.setSelections(newSelections.reverse());
-		}
 	}
 }
 
