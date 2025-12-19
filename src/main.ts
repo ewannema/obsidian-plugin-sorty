@@ -95,10 +95,16 @@ export default class Sorty extends Plugin {
 
 	onunload() {}
 
+	/**
+	 * Loads plugin settings from disk.
+	 */
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
+	/**
+	 * Saves plugin settings to disk.
+	 */
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
@@ -112,6 +118,9 @@ class SortySettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	/**
+	 * Displays the plugin settings UI.
+	 */
 	display(): void {
 		const { containerEl } = this;
 

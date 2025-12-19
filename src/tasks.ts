@@ -1,9 +1,16 @@
 // Task-related utilities and constants
 
-// Regular expressions for task detection
-export const TASK_REGEX = /^- \[[xX ]\] /;
-export const COMPLETED_TASK_REGEX = /^- \[[xX]\] /;
-export const TASK_EXTRACT_REGEX = /^- \[[xX ]\] (.*)$/;
+// Regular expressions components for task detection
+const COMPLETED_TASK_STATUSES = 'xX';
+const INCOMPLETE_TASK_STATUSES = ' ';
+const COMPLETED_TASK_MARKER = `[${COMPLETED_TASK_STATUSES}]`;
+const ANY_TASK_MARKER = `[${COMPLETED_TASK_STATUSES}${INCOMPLETE_TASK_STATUSES}]`;
+const TASK_PREFIX = '- \\[';
+const TASK_SUFFIX = '\\] ';
+const COMPLETED_TASK_REGEX = new RegExp(`^${TASK_PREFIX}${COMPLETED_TASK_MARKER}${TASK_SUFFIX}`);
+const TASK_EXTRACT_REGEX = new RegExp(`^${TASK_PREFIX}${ANY_TASK_MARKER}${TASK_SUFFIX}(.*)$`);
+const TASK_REGEX = new RegExp(`^${TASK_PREFIX}${ANY_TASK_MARKER}${TASK_SUFFIX}`);
+const TASK_WITH_INDENT_REGEX = new RegExp(`^\\s*${TASK_PREFIX}${ANY_TASK_MARKER}${TASK_SUFFIX}`);
 
 // Task-specific comparators
 export const TaskComparators = {
@@ -33,7 +40,12 @@ export const TaskComparators = {
 	},
 };
 
-// Helper function to check if a line is a top-level task (no leading whitespace)
+/**
+ * Checks if a line is a top-level task (no leading whitespace).
+ *
+ * @param line - The line to check
+ * @returns True if the line is a top-level task, false otherwise
+ */
 export function isTopLevelTask(line: string): boolean {
 	return TASK_REGEX.test(line);
 }
@@ -46,10 +58,15 @@ function getIndentationLevel(line: string): number {
 
 // Helper function to check if a line is a task (at any indentation level)
 function isTask(line: string): boolean {
-	return /^\s*- \[[xX ]\] /.test(line);
+	return TASK_WITH_INDENT_REGEX.test(line);
 }
 
-// Helper function to group lines into task blocks (parent + nested children)
+/**
+ * Groups lines into task blocks (parent + nested children).
+ *
+ * @param lines - Array of lines to group
+ * @returns Array of grouped line arrays, where each group is a task and its children
+ */
 export function groupTaskLines(lines: string[]): string[][] {
 	const groups: string[][] = [];
 	let currentGroup: string[] = [];
