@@ -24,7 +24,11 @@ export function sortRanges<T extends { range: LineRange }>(
 }
 
 /**
- * Normalizes a selection (anchor/head) into a line range (from/to)
+ * Normalizes a selection (anchor/head) into a line range (from/to).
+ *
+ * @param anchor - The anchor line number of the selection
+ * @param head - The head line number of the selection
+ * @returns The normalized line range with fromLine and toLine
  */
 export function lineRangeFromSelection(anchor: number, head: number): LineRange {
 	return {
@@ -33,7 +37,13 @@ export function lineRangeFromSelection(anchor: number, head: number): LineRange 
 	};
 }
 
-// Helper function to get lines from editor within a range
+/**
+ * Gets lines from the editor within a specified range.
+ *
+ * @param editor - The Obsidian editor instance
+ * @param range - The line range to retrieve content from
+ * @returns An object containing the range and array of line contents
+ */
 export function getLineRangeContent(
 	editor: Editor,
 	range: LineRange
@@ -48,7 +58,14 @@ export function getLineRangeContent(
 	return { range, lines };
 }
 
-// Helper function to replace lines in the editor
+/**
+ * Replaces lines in the editor with new content.
+ *
+ * @param editor - The Obsidian editor instance
+ * @param range - The line range to replace
+ * @param lines - Array of new line contents
+ * @returns True if the replacement was successful, false if the range was invalid
+ */
 export function replaceLineRange(editor: Editor, range: LineRange, lines: string[]): boolean {
 	const toLine = editor.getLine(range.toLine);
 	if (toLine === undefined) {
@@ -66,7 +83,14 @@ export function replaceLineRange(editor: Editor, range: LineRange, lines: string
 	return true;
 }
 
-// Helper function to create a selection object
+/**
+ * Creates a selection object spanning the specified line range.
+ *
+ * @param editor - The Obsidian editor instance
+ * @param fromLine - The starting line number
+ * @param toLine - The ending line number
+ * @returns An editor selection object spanning the line range
+ */
 export function lineSelection(editor: Editor, fromLine: number, toLine: number): EditorSelection {
 	const lastLine = editor.getLine(toLine);
 	return {
@@ -78,7 +102,12 @@ export function lineSelection(editor: Editor, fromLine: number, toLine: number):
 	};
 }
 
-// Transform the selected lines using the provided transformer function
+/**
+ * Transforms the selected lines using the provided transformer function.
+ *
+ * @param editor - The Obsidian editor instance
+ * @param transformer - Function that takes an array of lines and returns transformed lines
+ */
 export function transformLineSelections(
 	editor: Editor,
 	transformer: (lines: string[]) => string[]
